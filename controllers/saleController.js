@@ -5,25 +5,91 @@ const Counter = require('../models/counterModel');
 
 
 /* ================= Generate Sale Code ================= */
-
-const generateSaleCode = async () => {
-
-  const counter = await Counter.findOneAndUpdate(
-    { name: 'sale' },
-    { $inc: { sequence: 1 } },
-    { new: true, upsert: true }
-  );
-
-  const number = counter.sequence.toString().padStart(4, '0');
-  return `SAL-${number}`;
-};
+async function generateSaleCode() {
+  const count = await Sale.countDocuments();
+  const next = count + 1;
+  return `SALE-${next.toString().padStart(4, '0')}`;
+}
 
 
 
+// exports.createSale = async (req, res) => {
 
+//   try {
+
+//     const {
+//       customerName,
+//       items,
+//       subtotal,
+//       totalDiscount,
+//       grandTotal,
+//       paidAmount,
+//       paymentMethod,
+//       createdBy
+//     } = req.body;
+
+//     if (!items || items.length === 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Sale must contain at least one product'
+//       });
+//     }
+
+//     // Validate and deduct stock
+//     for (let item of items) {
+
+//       const product = await Product.findById(item.productId);
+
+//       if (!product) {
+//         return res.status(400).json({
+//           success: false,
+//           message: `Product not found`
+//         });
+//       }
+
+//       if (product.currentStock < item.quantity) {
+//         return res.status(400).json({
+//           success: false,
+//           message: `Insufficient stock for ${product.name}`
+//         });
+//       }
+
+//       product.currentStock -= item.quantity;
+//       await product.save();
+//     }
+
+//     const saleCode = await generateSaleCode();
+
+//     const sale = await Sale.create({
+//       saleCode,
+//       customerName,
+//       items,
+//       subtotal,
+//       totalDiscount,
+//       grandTotal,
+//       paidAmount,
+//       isFullyPaid: paidAmount >= grandTotal,
+//       paymentMethod,
+//       createdBy
+//     });
+
+//     return res.status(201).json({
+//       success: true,
+//       message: 'Sale created successfully',
+//       data: sale
+//     });
+
+//   } catch (error) {
+
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Internal server error',
+//       error: error.message
+//     });
+//   }
+// };
 
 exports.createSale = async (req, res) => {
-
   try {
 
     const {
@@ -37,14 +103,19 @@ exports.createSale = async (req, res) => {
       createdBy
     } = req.body;
 
+    // Validate items
     if (!items || items.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Sale must contain at least one product'
+        message: "Sale must contain at least one product"
       });
     }
 
-    // Validate and deduct stock
+    // Generate sale codes
+    const saleCode = await generateSaleCode();
+    const saleId = saleCode; // using same value to avoid null issue
+
+    // Validate stock first
     for (let item of items) {
 
       const product = await Product.findById(item.productId);
@@ -52,7 +123,7 @@ exports.createSale = async (req, res) => {
       if (!product) {
         return res.status(400).json({
           success: false,
-          message: `Product not found`
+          message: "Product not found"
         });
       }
 
@@ -63,13 +134,21 @@ exports.createSale = async (req, res) => {
         });
       }
 
-      product.currentStock -= item.quantity;
-      await product.save();
     }
 
-    const saleCode = await generateSaleCode();
+    // Deduct stock after validation
+    for (let item of items) {
 
+      const product = await Product.findById(item.productId);
+
+      product.currentStock -= item.quantity;
+      await product.save();
+
+    }
+
+    // Create sale
     const sale = await Sale.create({
+      saleId,
       saleCode,
       customerName,
       items,
@@ -84,7 +163,7 @@ exports.createSale = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Sale created successfully',
+      message: "Sale created successfully",
       data: sale
     });
 
@@ -92,12 +171,12 @@ exports.createSale = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: "Internal server error",
       error: error.message
     });
+
   }
 };
-
 
 exports.updateSale = async (req, res) => {
 
@@ -621,6 +700,135 @@ exports.getSales = async (req, res) => {
     });
 
   } catch (error) {
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+
+
+/* =====================================================
+   GET SALES FOR REPORT (WITH FILTERS)
+   ===================================================== */
+
+exports.getSalesReport = async (req, res) => {
+
+  try {
+
+    const { period, paymentMethod, from, to } = req.query;
+
+    const filter = {};
+
+    /* ===============================
+       PAYMENT METHOD FILTER
+       =============================== */
+
+    if (paymentMethod) {
+
+      const allowedMethods = ['Cash', 'Bank Transfer', 'Online Wallets'];
+
+      if (!allowedMethods.includes(paymentMethod)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid payment method'
+        });
+      }
+
+      filter.paymentMethod = paymentMethod;
+    }
+
+    /* ===============================
+       PERIOD FILTER
+       =============================== */
+
+    if (period) {
+
+      const now = new Date();
+      let startDate;
+
+      if (period === 'daily') {
+        startDate = new Date(now.setHours(0, 0, 0, 0));
+      }
+
+      else if (period === 'weekly') {
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7);
+      }
+
+      else if (period === 'monthly') {
+        startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - 1);
+      }
+
+      else {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid period filter'
+        });
+      }
+
+      filter.createdAt = { $gte: startDate };
+    }
+
+    /* ===============================
+       DATE RANGE FILTER
+       =============================== */
+
+    if (from || to) {
+
+      if (!from || !to) {
+        return res.status(400).json({
+          success: false,
+          message: 'Both "from" and "to" dates are required'
+        });
+      }
+
+      const fromDate = new Date(from);
+      const toDate = new Date(to);
+
+      if (isNaN(fromDate) || isNaN(toDate)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid date format'
+        });
+      }
+
+      if (fromDate > toDate) {
+        return res.status(400).json({
+          success: false,
+          message: '"From" date cannot be greater than "To" date'
+        });
+      }
+
+      filter.createdAt = {
+        $gte: fromDate,
+        $lte: toDate
+      };
+    }
+
+    /* ===============================
+       FETCH SALES
+       =============================== */
+
+    const sales = await Sale.find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      count: sales.length,
+      data: sales
+    });
+
+  }
+
+  catch (error) {
+
+    console.error('Sales Report Error:', error);
 
     return res.status(500).json({
       success: false,

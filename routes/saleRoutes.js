@@ -11,4 +11,6 @@ router.get('/sale/:id', saleController.getSaleById);
 
 router.get('',saleController.getSales)
 
+router.get('/report', saleController.getSalesReport);
+
 module.exports = router;
