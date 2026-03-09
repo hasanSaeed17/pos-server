@@ -26,6 +26,7 @@ app.use('/api/invoices', require('./routes/invoiceRoutes'));
 app.use('/api/alerts', require('./routes/alertRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/inventory', require('./routes/inventoryRoutes'));
+app.use("/api/inventory-adjustments", require("./routes/inventoryAdjustmentRoutes"));
 
 /* -------------------- HEALTH CHECK -------------------- */
 app.get('/', (req, res) => {
