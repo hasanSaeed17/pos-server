@@ -53,7 +53,14 @@ const purchaseSchema = new mongoose.Schema({
 
   grandTotal: { type: Number, required: true, min: 0 },
 
-  createdBy: { type: String, required: true }
+  createdBy: { type: String, required: true },
+
+returnStatus: {
+  type: String,
+  enum: ['none', 'partial', 'fully_returned'],
+  default: 'none'
+},
+
 
 }, {
   timestamps: true
