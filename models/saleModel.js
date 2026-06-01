@@ -77,6 +77,19 @@ const saleSchema = new mongoose.Schema({
     default: true
   },
 
+returnedAmount: {
+  type: Number,
+  default: 0,
+  required: false
+},
+
+returnStatus: {
+  type: String,
+  enum: ['none', 'partial', 'fully_returned'],
+  default: 'none',
+  required: false
+},
+
   paymentMethod: {
     type: String,
     enum: ['Cash', 'Bank Transfer', 'Online Wallets'],
