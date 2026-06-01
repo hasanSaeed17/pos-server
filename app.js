@@ -30,6 +30,8 @@ app.use("/api/inventory-adjustments", require("./routes/inventoryAdjustmentRoute
 app.use('/api/sale-returns', require('./routes/saleReturnRoutes'));
 app.use('/api/purchase-returns', require('./routes/purchaseReturnRoutes'));
 
+app.use('/api/profits', require('./routes/profitRoutes'));
+
 /* -------------------- HEALTH CHECK -------------------- */
 app.get('/', (req, res) => {
   res.status(200).json({
