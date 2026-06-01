@@ -21,12 +21,13 @@ app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/suppliers', require('./routes/supplierRoutes'));
 app.use('/api/purchases', require('./routes/purchaseRoutes'));
 app.use('/api/sales', require('./routes/saleRoutes'));
-app.use('/api/returns', require('./routes/returnRoutes'));
 app.use('/api/invoices', require('./routes/invoiceRoutes'));
 app.use('/api/alerts', require('./routes/alertRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/inventory', require('./routes/inventoryRoutes'));
 app.use("/api/inventory-adjustments", require("./routes/inventoryAdjustmentRoutes"));
+
+app.use('/api/sale-returns', require('./routes/saleReturnRoutes'));
 app.use('/api/purchase-returns', require('./routes/purchaseReturnRoutes'));
 
 /* -------------------- HEALTH CHECK -------------------- */

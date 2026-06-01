@@ -265,3 +265,51 @@ exports.getReturnById = async (req, res) => {
     });
   }
 };
+
+
+/* ==========================================================
+   GET SALE RETURNS LIST (WITH FILTERS)
+   GET /api/returns/list?period=&from=&to=&paymentMethod=
+   ========================================================== */
+exports.getSaleReturnsList = async (req, res) => {
+  try {
+
+    const { period, from, to } = req.query;
+    const filter = {};
+
+    if (period) {
+      const now = new Date();
+      let startDate;
+
+      if (period === 'daily')   startDate = new Date(now.setHours(0, 0, 0, 0));
+      if (period === 'weekly')  { startDate = new Date(); startDate.setDate(startDate.getDate() - 7); }
+      if (period === 'monthly') { startDate = new Date(); startDate.setMonth(startDate.getMonth() - 1); }
+
+      if (startDate) filter.createdAt = { $gte: startDate };
+    }
+
+    if (from && to) {
+      filter.createdAt = {
+        $gte: new Date(from),
+        $lte: new Date(to)
+      };
+    }
+
+    const returns = await SaleReturn.find(filter)
+      .populate('saleId', 'saleCode paymentMethod customerName')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count:   returns.length,
+      data:    returns
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error:   error.message
+    });
+  }
+};
