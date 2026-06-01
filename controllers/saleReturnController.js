@@ -51,6 +51,8 @@ exports.createReturn = async (req, res) => {
     }
 
     // ── Validate each returned item ───────────────────────
+    const previousReturns = await SaleReturn.find({ saleId });
+
     for (let retItem of returnedItems) {
 
       const saleItem = sale.items.find(
@@ -63,9 +65,6 @@ exports.createReturn = async (req, res) => {
           message: `Product ${retItem.productName} is not part of this sale`
         });
       }
-
-      // How much has already been returned for this product across previous returns
-      const previousReturns = await SaleReturn.find({ saleId });
 
       const alreadyReturned = previousReturns.reduce((sum, ret) => {
         const match = ret.returnedItems.find(
@@ -112,23 +111,37 @@ exports.createReturn = async (req, res) => {
       returnedBy
     });
 
-    // ── Update the original sale ──────────────────────────
+    // ── Calculate updated sale values ─────────────────────
     const newReturnedAmount = (sale.returnedAmount || 0) + totalReturnAmount;
     const newGrandTotal     = sale.grandTotal - totalReturnAmount;
     const newPaidAmount     = Math.max(0, sale.paidAmount - totalReturnAmount);
 
-    // Recalculate returnStatus
     let returnStatus = 'partial';
-    if (newGrandTotal <= 0) {
-      returnStatus = 'fully_returned';
-    }
+    if (newGrandTotal <= 0) returnStatus = 'fully_returned';
 
+    // ── Update item quantities in original sale ───────────
+    const updatedItems = sale.items.map((saleItem) => {
+      const retItem = returnedItems.find(
+        r => r.productId === saleItem.productId.toString()
+      );
+      if (retItem) {
+        return {
+          ...saleItem.toObject(),
+          quantity:  saleItem.quantity - retItem.quantity,
+          lineTotal: (saleItem.quantity - retItem.quantity) * saleItem.sellingPrice
+        };
+      }
+      return saleItem.toObject();
+    });
+
+    // ── Update the original sale ──────────────────────────
     await Sale.findByIdAndUpdate(saleId, {
       returnedAmount: newReturnedAmount,
       grandTotal:     newGrandTotal,
       paidAmount:     newPaidAmount,
       isFullyPaid:    newPaidAmount >= newGrandTotal,
-      returnStatus
+      returnStatus,
+      items:          updatedItems
     });
 
     return res.status(201).json({
@@ -145,7 +158,6 @@ exports.createReturn = async (req, res) => {
     });
   }
 };
-
 
 /* ==========================================================
    GET ALL RETURNS  (with filters)
