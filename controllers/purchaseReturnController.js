@@ -263,7 +263,7 @@ exports.getPurchaseReturnById = async (req, res) => {
    GET PURCHASE RETURNS REPORT (WITH FILTERS)
    GET /api/purchase-returns/report?period=&from=&to=&supplierId=
    ========================================================== */
-exports.getPurchaseReturnsReport = async (req, res) => {
+exports.getPurchaseReturnsList = async (req, res) => {
   try {
 
     const { period, from, to, supplierId } = req.query;
