@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const Sale = require('../models/saleModel');
 const Product = require('../models/productModel');
-const Counter = require('../models/counterModel');
 
 
 /* ================= Generate Sale Code ================= */
@@ -113,7 +112,7 @@ exports.createSale = async (req, res) => {
 
     // Generate sale codes
     const saleCode = await generateSaleCode();
-    const saleId = saleCode; // using same value to avoid null issue
+    //const saleId = saleCode; // using same value to avoid null issue
 
     // Validate stock first
     for (let item of items) {
@@ -148,7 +147,6 @@ exports.createSale = async (req, res) => {
 
     // Create sale
     const sale = await Sale.create({
-      saleId,
       saleCode,
       customerName,
       items,
