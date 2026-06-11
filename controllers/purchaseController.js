@@ -324,3 +324,57 @@ exports.getPurchases = async (req, res) => {
     });
   }
 };
+
+
+// ===============================
+// UPDATE PURCHASE (Draft only)
+// ===============================
+exports.updatePurchase = async (req, res) => {
+  try {
+
+    const purchase = await Purchase.findById(req.params.id);
+
+    if (!purchase) {
+      return res.status(404).json({
+        success: false,
+        message: 'Purchase not found'
+      });
+    }
+
+    if (purchase.status === 'confirmed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot edit a confirmed purchase'
+      });
+    }
+
+    const {
+      supplierId,
+      invoiceNumber,
+      purchaseDate,
+      items,
+      subtotal,
+      totalDiscount,
+      grandTotal
+    } = req.body;
+
+    const updated = await Purchase.findByIdAndUpdate(
+      req.params.id,
+      { supplierId, invoiceNumber, purchaseDate, items, subtotal, totalDiscount, grandTotal },
+      { new: true }
+    ).populate('supplierId', 'name');
+
+    return res.status(200).json({
+      success: true,
+      message: 'Draft updated successfully',
+      data: updated
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
