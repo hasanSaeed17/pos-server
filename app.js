@@ -32,6 +32,8 @@ app.use('/api/purchase-returns', require('./routes/purchaseReturnRoutes'));
 
 app.use('/api/profits', require('./routes/profitRoutes'));
 
+app.use('/api/payments', require('./routes/paymentRoutes'));
+
 /* -------------------- HEALTH CHECK -------------------- */
 app.get('/', (req, res) => {
   res.status(200).json({
