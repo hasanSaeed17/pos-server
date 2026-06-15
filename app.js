@@ -34,6 +34,8 @@ app.use('/api/profits', require('./routes/profitRoutes'));
 
 app.use('/api/payments', require('./routes/paymentRoutes'));
 
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
+
 /* -------------------- HEALTH CHECK -------------------- */
 app.get('/', (req, res) => {
   res.status(200).json({
